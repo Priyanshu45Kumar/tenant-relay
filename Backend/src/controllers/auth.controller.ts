@@ -573,3 +573,63 @@ export const login = async (
     });
   }
 };
+
+export const getCurrentUser = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  if (!request.auth) {
+    response.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+
+    return;
+  }
+
+  const { userId, tenantId } = request.auth;
+
+  try {
+    const [user, tenant, membership] = await Promise.all([
+      UserModel.findById(userId),
+      TenantModel.findById(tenantId),
+      MembershipModel.findOne({
+        userId,
+        tenantId,
+      }),
+    ]);
+
+    if (!user || !tenant || !membership) {
+      response.status(403).json({
+        success: false,
+        message: "Account or workspace access was not found",
+      });
+
+      return;
+    }
+
+    response.status(200).json({
+      success: true,
+      data: {
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+        },
+        tenant: {
+          id: tenant._id.toString(),
+          name: tenant.name,
+          slug: tenant.slug,
+        },
+        role: membership.role,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to get current user:", error);
+
+    response.status(500).json({
+      success: false,
+      message: "Unable to retrieve account information",
+    });
+  }
+};
