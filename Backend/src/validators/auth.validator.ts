@@ -29,3 +29,18 @@ export const requestRegistrationOtpSchema = z
       .max(100, "Workspace name cannot exceed 100 characters"),
   })
   .strict();
+
+  export const verifyRegistrationOtpSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .email("Enter a valid email address")
+      .max(254, "Email address is too long"),
+
+    otp: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "OTP must contain exactly 6 digits"),
+  })
+  .strict();
