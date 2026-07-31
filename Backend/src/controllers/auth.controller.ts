@@ -11,6 +11,7 @@ import { UserModel } from "../models/user.model.js";
 import { sendOtpEmail } from "../services/email.service.js";
 import { createSlug } from "../utils/create-slug.js";
 import {
+  loginSchema,
   requestRegistrationOtpSchema,
   verifyRegistrationOtpSchema,
 } from "../validators/auth.validator.js";
@@ -461,5 +462,114 @@ export const verifyRegistrationOtp = async (
     if (session) {
       await session.endSession();
     }
+  }
+};
+
+export const login = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  const validationResult = loginSchema.safeParse(request.body);
+
+  if (!validationResult.success) {
+    response.status(400).json({
+      success: false,
+      message: "Invalid login data",
+      errors: validationResult.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+
+    return;
+  }
+
+  const { email, password } = validationResult.data;
+  const normalizedEmail = email.toLowerCase();
+
+  try {
+    const user = await UserModel.findOne({
+      email: normalizedEmail,
+    }).select("+passwordHash");
+
+    if (!user) {
+      response.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      response.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+
+      return;
+    }
+
+    const membership = await MembershipModel.findOne({
+      userId: user._id,
+    }).sort({ createdAt: 1 });
+
+    if (!membership) {
+      response.status(403).json({
+        success: false,
+        message: "No workspace membership found for this account",
+      });
+
+      return;
+    }
+
+    const tenant = await TenantModel.findById(membership.tenantId);
+
+    if (!tenant) {
+      response.status(403).json({
+        success: false,
+        message: "Workspace associated with this account was not found",
+      });
+
+      return;
+    }
+
+    const accessToken = createAccessToken(
+      user._id.toString(),
+      tenant._id.toString(),
+      membership.role,
+    );
+
+    response.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        accessToken,
+        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+        },
+        tenant: {
+          id: tenant._id.toString(),
+          name: tenant.name,
+          slug: tenant.slug,
+        },
+        role: membership.role,
+      },
+    });
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    response.status(500).json({
+      success: false,
+      message: "Unable to log in",
+    });
   }
 };
