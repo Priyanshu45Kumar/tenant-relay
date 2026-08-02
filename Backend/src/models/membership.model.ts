@@ -1,13 +1,11 @@
 import { Schema, model, type Types } from "mongoose";
+import {
+  MEMBERSHIP_ROLES,
+  type MembershipRole,
+} from "../constants/membership-roles.js";
 
-export const MEMBERSHIP_ROLES = [
-  "owner",
-  "admin",
-  "developer",
-  "viewer",
-] as const;
 
-export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
+
 
 export interface IMembership {
   tenantId: Types.ObjectId;

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { isMembershipRole } from "../constants/membership-roles.js";
 
 export const authenticate = (
   request: Request,
@@ -55,7 +56,7 @@ export const authenticate = (
       typeof decodedToken === "string" ||
       typeof decodedToken.sub !== "string" ||
       typeof decodedToken.tenantId !== "string" ||
-      typeof decodedToken.role !== "string"
+      !isMembershipRole(decodedToken.role)
     ) {
       response.status(401).json({
         success: false,
