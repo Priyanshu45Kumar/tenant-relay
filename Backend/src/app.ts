@@ -1,6 +1,7 @@
 import cors from "cors";
 import express, { type Request, type Response } from "express";
 import authRouter from "./routes/auth.routes.js";
+import workspaceRouter from "./routes/workspace.routes.js";
 
 const app = express();
 
@@ -21,5 +22,6 @@ app.get("/api/health", (_request: Request, response: Response) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/workspace",workspaceRouter);
 
 export default app;
