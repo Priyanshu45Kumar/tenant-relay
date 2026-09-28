@@ -28,6 +28,7 @@ const Events = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [apiKey, setApiKey] = useState("");
 
   const loadEvents = async () => {
     try {
@@ -77,7 +78,9 @@ const Events = () => {
       const response = await createEvent({
         type,
         payload: parsedPayload,
-      });
+      },
+      apiKey,
+    );
 
       setEvents((currentEvents) => [
         response.data,
@@ -162,6 +165,24 @@ const Events = () => {
             onSubmit={handleSubmit}
             className="space-y-5"
           >
+            <div>
+  <label
+    htmlFor="api-key"
+    className="mb-2 block text-sm font-medium text-zinc-300"
+  >
+    API Key
+  </label>
+
+  <input
+    id="api-key"
+    type="password"
+    value={apiKey}
+    onChange={(event) => setApiKey(event.target.value)}
+    placeholder="Enter your TenantRelay API key"
+    required
+    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/10"
+  />
+</div>
             {/* Event type */}
             <div>
               <label

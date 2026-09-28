@@ -587,6 +587,14 @@ export const getCurrentUser = async (
     return;
   }
 
+  if (request.auth.authType !== "jwt") {
+      response.status(403).json({
+        success: false,
+        message: "current user  requires JWT authentication",
+      });
+      return;
+    }
+
   const { userId, tenantId } = request.auth;
 
   try {

@@ -15,6 +15,15 @@ export const authorize = (...roles: string[]) => {
       return;
     }
 
+    if (request.auth.authType !== "jwt") {
+      response.status(403).json({
+        success: false,
+        message: "Role-based authorization requires JWT authentication",
+      });
+      return;
+    }
+
+
     if (!roles.includes(request.auth.role)) {
       response.status(403).json({
         success: false,

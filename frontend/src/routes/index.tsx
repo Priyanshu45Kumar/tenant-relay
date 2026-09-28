@@ -8,6 +8,10 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import Webhooks from "../pages/Webhooks/Webhooks";
 import Events from "../pages/events/Events";
+import Settings from "../pages/settings/Settings";
+import GeneralSetting from "../pages/settings/GeneralSetting";
+import ApiKeys from "../pages/settings/ApiKeys";
+
 function HomePage() {
   return <div>TenantRelay Home</div>;
 }
@@ -35,26 +39,40 @@ export const router = createBrowserRouter([
       }
     ],
   },
-  {
-    element: <ProtectedRoute />,
-    children: [
-      {
-        element: <DashboardLayout />,
-        children: [
-          {
-            path: "/dashboard",
-            element: <Dashboard />,
-          },
-          {
-            path:"/webhooks",
-            element:<Webhooks/>
-          },
-          {
-            path:"/events",
-            element:<Events/>
-          }
-        ],
-      },
-    ],
-  },
+ {
+  element: <ProtectedRoute />,
+  children: [
+    {
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "/dashboard",
+          element: <Dashboard />,
+        },
+        {
+          path: "/webhooks",
+          element: <Webhooks />,
+        },
+        {
+          path: "/events",
+          element: <Events />,
+        },
+        {
+          path: "/settings",
+          element: <Settings />,
+          children: [
+            {
+              index: true,
+              element: <GeneralSetting />,
+            },
+            {
+      path: "api-keys",
+      element: <ApiKeys />,
+    },
+          ],
+        },
+      ],
+    },
+  ],
+},
 ]);

@@ -68,6 +68,7 @@ export const authenticate = (
     }
 
     request.auth = {
+      authType:"jwt",
       userId: decodedToken.sub,
       tenantId: decodedToken.tenantId,
       role: decodedToken.role,

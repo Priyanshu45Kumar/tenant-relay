@@ -8,7 +8,7 @@ export const connectDatabase = async (): Promise<void> => {
   }
 
   await mongoose.connect(mongoUri);
-
+  console.log("MongoDB database:", mongoose.connection.name);
   console.log(`MongoDB connected: ${mongoose.connection.host}`);
 };
 

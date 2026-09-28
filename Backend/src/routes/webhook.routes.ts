@@ -1,7 +1,10 @@
 
 import { Router } from "express";
 
-import { createWebhookEndpoint } from "../controllers/webhook.controller.js";
+import { createWebhookEndpoint,
+         deactivateWebhookEndpoint,
+         getWebhookEndpoints
+ } from "../controllers/webhook.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { requireTenantMembership } from "../middlewares/membership.middleware.js";
 
@@ -12,6 +15,20 @@ router.post(
   authenticate,
   requireTenantMembership,
   createWebhookEndpoint,
+);
+
+router.patch(
+  "/:id/deactivate",
+  authenticate,
+  requireTenantMembership,
+  deactivateWebhookEndpoint,
+);
+
+router.get(
+  "/",
+  authenticate,
+  requireTenantMembership,
+  getWebhookEndpoints,
 );
 
 export default router;

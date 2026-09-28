@@ -20,3 +20,18 @@ export interface CreateWebhookResponse {
   data: WebhookEndpoint;
 }
 
+export interface GetWebhooksResponse {
+  success: boolean;
+  data: WebhookEndpoint[];
+}
+export interface RevokeWebhookResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    name: string;
+    url: string;
+    active: boolean;
+  };
+}
+

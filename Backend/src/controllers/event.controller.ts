@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 
 import { EventModel } from "../models/event.model.js";
 import { createEventSchema } from "../validators/event.validator.js";
+import {webhookDeliveryQueue} from "../queues/webhook.queue.js"
 
 export const createEvent = async (
   request: Request,
@@ -38,12 +39,19 @@ export const createEvent = async (
   const { type, payload } = validationResult.data;
 
   try {
+        console.log("Creating Event...")
     const event = await EventModel.create({
       tenantId,
       type,
       payload,
     });
 
+    console.log("Event created in MongoDB:", event._id.toString());
+    await webhookDeliveryQueue.add("deliver-webhook", {
+    eventId: event._id.toString(),
+    tenantId: tenantId.toString(),
+  });
+  console.log("Job added to webhook queue");
     response.status(201).json({
       success: true,
       message: "Event created successfully",

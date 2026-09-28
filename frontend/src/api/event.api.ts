@@ -9,10 +9,16 @@ import type {
 
 export const createEvent = async (
   data: CreateEventRequest,
+  apiKey:string
 ): Promise<CreateEventResponse> => {
   const response = await api.post<CreateEventResponse>(
     "/events",
     data,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    },
   );
 
   return response.data;

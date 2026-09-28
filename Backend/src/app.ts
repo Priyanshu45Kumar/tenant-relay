@@ -4,6 +4,9 @@ import authRouter from "./routes/auth.routes.js";
 import workspaceRouter from "./routes/workspace.routes.js";
 import webhookRouter from "./routes/webhook.routes.js"
 import eventRouter from "./routes/event.routes.js";
+import apiKeyRouter from "./routes/apiKey.routes.js";
+import "./config/redis.js";
+
 
 const app = express();
 
@@ -27,5 +30,6 @@ app.use("/api/auth", authRouter);
 app.use("/api/workspace",workspaceRouter);
 app.use("/api/webhooks",webhookRouter);
 app.use("/api/events", eventRouter);
+app.use("/api/api-keys",apiKeyRouter)
 
 export default app;

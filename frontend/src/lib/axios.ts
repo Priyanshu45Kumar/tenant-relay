@@ -12,7 +12,7 @@ api.interceptors.request.use(
   (config) => {
     const auth = getStoredAuth();
 
-    if (auth?.accessToken) {
+    if (auth?.accessToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${auth.accessToken}`;
     }
 

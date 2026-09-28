@@ -16,6 +16,14 @@ export const requireTenantMembership = async (
 
     return;
   }
+  if (request.auth.authType !== "jwt") {
+      response.status(403).json({
+        success: false,
+        message: "Role-based authorization requires JWT authentication",
+      });
+      return;
+    }
+
 
   const { userId, tenantId } = request.auth;
 

@@ -69,3 +69,112 @@ export const createWebhookEndpoint = async (
     });
   }
 };
+
+export const deactivateWebhookEndpoint = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  if (!request.auth) {
+    response.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+
+    return;
+  }
+
+  const { tenantId } = request.auth;
+  const { id } = request.params;
+
+  try {
+    const webhookEndpoint =
+      await WebhookEndpointModel.findOneAndUpdate(
+        {
+          _id: id,
+          tenantId,
+          active: true,
+        },
+        {
+          $set: {
+            active: false,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+    if (!webhookEndpoint) {
+      response.status(404).json({
+        success: false,
+        message: "Active webhook endpoint not found",
+      });
+
+      return;
+    }
+
+    response.status(200).json({
+      success: true,
+      message: "Webhook endpoint deactivated successfully",
+      data: {
+        id: webhookEndpoint._id.toString(),
+        name: webhookEndpoint.name,
+        url: webhookEndpoint.url,
+        active: webhookEndpoint.active,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Failed to deactivate webhook endpoint:",
+      error,
+    );
+
+    response.status(500).json({
+      success: false,
+      message: "Unable to deactivate webhook endpoint",
+    });
+  }
+};
+
+export const getWebhookEndpoints = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  if (!request.auth) {
+    response.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+
+    return;
+  }
+
+  const { tenantId } = request.auth;
+
+  try {
+    const webhooks = await WebhookEndpointModel.find({
+      tenantId,
+    }).sort({
+      createdAt: -1,
+    });
+
+    response.status(200).json({
+      success: true,
+      data: webhooks.map((webhook) => ({
+        id: webhook._id.toString(),
+        name: webhook.name,
+        url: webhook.url,
+        active: webhook.active,
+        createdAt: webhook.createdAt,
+        updatedAt: webhook.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Failed to fetch webhook endpoints:", error);
+
+    response.status(500).json({
+      success: false,
+      message: "Unable to fetch webhook endpoints",
+    });
+  }
+};
