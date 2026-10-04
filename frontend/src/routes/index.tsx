@@ -11,10 +11,8 @@ import Events from "../pages/events/Events";
 import Settings from "../pages/settings/Settings";
 import GeneralSetting from "../pages/settings/GeneralSetting";
 import ApiKeys from "../pages/settings/ApiKeys";
+import HomePage from "../pages/HomePage"
 
-function HomePage() {
-  return <div>TenantRelay Home</div>;
-}
 
 
 export const router = createBrowserRouter([

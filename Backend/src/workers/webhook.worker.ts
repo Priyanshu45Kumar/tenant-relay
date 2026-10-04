@@ -6,6 +6,7 @@ import { redisConnection } from "../config/redis.js";
 import { connectDatabase } from "../config/database.js";
 import { EventModel } from "../models/event.model.js";
 import { WebhookEndpointModel } from "../models/webhook-endpoint.model.js";
+import { generateWebhookSignature } from "../utils/webhook-signature.js";
 
 const startWorker = async () => {
   await connectDatabase();
@@ -42,11 +43,25 @@ const startWorker = async () => {
           `Sending event ${event._id} to ${webhook.url}`,
         );
 
-        await axios.post(webhook.url, {
+        const webhookPayload = {
           id: event._id.toString(),
           type: event.type,
           payload: event.payload,
           createdAt: event.createdAt,
+        };
+
+        const rawPayload = JSON.stringify(webhookPayload);
+
+        const signature = generateWebhookSignature(
+          rawPayload,
+          webhook.secret,
+        );
+
+        await axios.post(webhook.url, rawPayload, {
+          headers: {
+            "Content-Type": "application/json",
+            "X-TenantRelay-Signature": signature,
+          },
         });
 
         console.log(
@@ -72,5 +87,8 @@ const startWorker = async () => {
 };
 
 startWorker().catch((error) => {
-  console.error("Failed to start webhook worker:", error);
+  console.error(
+    "Failed to start webhook worker:",
+    error,
+  );
 });
