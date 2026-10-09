@@ -15,7 +15,7 @@ router.get(
   "/",
   authenticate,
   requireTenantMembership,
-  authorize("owner", "admin"),
+  authorize("owner", "admin","developer"),
   getApiKeys,
 );
 

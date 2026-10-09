@@ -42,6 +42,7 @@ export const authenticateApiKey = async (
     }
 
     request.auth = {
+      userId:"string",
         authType:"api-key",
       tenantId: apiKeyRecord.tenantId.toString(),
     };

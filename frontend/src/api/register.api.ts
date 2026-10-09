@@ -1,11 +1,11 @@
-import api from "../lib/axios"
+import api from "../lib/axios";
 
-export interface RegisterRequest{
-    name:string,
-    email:string,
-    password:string,
-    tenantName:string
-
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  tenantName: string;
+  invitationToken?: string;
 }
 
 export interface RequestOtpResponse {
@@ -18,15 +18,16 @@ export interface RequestOtpResponse {
   };
 }
 
-export const requestRegistrationOtp = async(
-    data:RegisterRequest,
-):Promise<RequestOtpResponse>=>{
+export const requestRegistrationOtp = async (
+  data: RegisterRequest,
+): Promise<RequestOtpResponse> => {
   const response = await api.post<RequestOtpResponse>(
     "/auth/register/request-otp",
-    data
+    data,
   );
+
   return response.data;
-}
+};
 
 export interface VerifyRegistrationOtpRequest {
   email: string;
@@ -49,7 +50,7 @@ export interface VerifyRegistrationOtpResponse {
       name: string;
       slug: string;
     };
-    role: "owner";
+    role: "owner" | "admin" | "developer" | "viewer";
   };
 }
 

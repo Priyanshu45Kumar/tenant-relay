@@ -1,5 +1,7 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { Schema, model, type Types } from "mongoose";
+import {createHash, randomBytes, randomInt } from "node:crypto";
 import type { Request, Response } from "express";
+import { TeamInvitationModel } from "../models/invitation.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -15,6 +17,8 @@ import {
   requestRegistrationOtpSchema,
   verifyRegistrationOtpSchema,
 } from "../validators/auth.validator.js";
+import { MembershipRole } from "../constants/membership-roles.js";
+
 const OTP_EXPIRY_MINUTES = 10;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
@@ -82,8 +86,18 @@ export const requestRegistrationOtp = async (
     return;
   }
 
-  const { name, email, password, tenantName } = validationResult.data;
+  const {
+    name,
+    email,
+    password,
+    tenantName,
+    invitationToken,
+  } = validationResult.data;
+
   const normalizedEmail = email.toLowerCase();
+
+  let invitationId: Types.ObjectId | undefined;
+  let registrationTenantName = tenantName;
 
   try {
     const existingUser = await UserModel.exists({
@@ -98,6 +112,44 @@ export const requestRegistrationOtp = async (
 
       return;
     }
+
+    // Check invitation if this is an invitation-based registration
+    if (invitationToken) {
+  const tokenHash = createHash("sha256")
+    .update(invitationToken)
+    .digest("hex");
+
+  const invitation = await TeamInvitationModel.findOne({
+    tokenHash,
+    email: normalizedEmail,
+    acceptedAt: null,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!invitation) {
+    response.status(400).json({
+      success: false,
+      message: "Invalid or expired invitation",
+    });
+
+    return;
+  }
+
+  const tenant = await TenantModel.findById(invitation.tenantId)
+    .select("name");
+
+  if (!tenant) {
+    response.status(404).json({
+      success: false,
+      message: "Invitation workspace no longer exists",
+    });
+
+    return;
+  }
+
+  invitationId = invitation._id;
+  registrationTenantName = tenant.name;
+}
 
     const existingPendingRegistration =
       await PendingRegistrationModel.findOne({
@@ -146,7 +198,8 @@ export const requestRegistrationOtp = async (
           name,
           email: normalizedEmail,
           passwordHash,
-          tenantName,
+          tenantName: registrationTenantName,
+          invitationId,
           otpHash,
           otpExpiresAt,
           otpAttempts: 0,
@@ -274,8 +327,11 @@ export const verifyRegistrationOtp = async (
     );
 
     if (!isOtpValid) {
-      const nextAttemptCount = pendingRegistration.otpAttempts + 1;
-      const remainingAttempts = MAX_OTP_ATTEMPTS - nextAttemptCount;
+      const nextAttemptCount =
+        pendingRegistration.otpAttempts + 1;
+
+      const remainingAttempts =
+        MAX_OTP_ATTEMPTS - nextAttemptCount;
 
       if (nextAttemptCount >= MAX_OTP_ATTEMPTS) {
         await PendingRegistrationModel.deleteOne({
@@ -316,15 +372,17 @@ export const verifyRegistrationOtp = async (
       throw new Error("JWT_SECRET is not configured");
     }
 
-    const tenantSlug = await generateUniqueTenantSlug(
-      pendingRegistration.tenantName,
-    );
+    const isInvitationRegistration =
+      Boolean(pendingRegistration.invitationId);
 
     const transactionSession = await mongoose.startSession();
     session = transactionSession;
 
     let createdUserId = "";
     let createdTenantId = "";
+    let createdTenantName = "";
+    let createdTenantSlug = "";
+    let createdRole: MembershipRole = "owner";
 
     await transactionSession.withTransaction(async () => {
       const existingUser = await UserModel.exists({
@@ -335,6 +393,13 @@ export const verifyRegistrationOtp = async (
         throw new Error("ACCOUNT_ALREADY_EXISTS");
       }
 
+      /*
+       * Create the user first.
+       *
+       * This is common for both:
+       * 1. Normal signup
+       * 2. Invitation signup
+       */
       const user = new UserModel({
         name: pendingRegistration.name,
         email: pendingRegistration.email,
@@ -345,26 +410,101 @@ export const verifyRegistrationOtp = async (
         session: transactionSession,
       });
 
-      const tenant = new TenantModel({
-        name: pendingRegistration.tenantName,
-        slug: tenantSlug,
-        createdBy: user._id,
-      });
+      /*
+       * INVITATION REGISTRATION
+       *
+       * User was invited to an existing workspace.
+       *
+       * IMPORTANT:
+       * Do NOT create a new tenant.
+       * Do NOT give owner role.
+       */
+      if (isInvitationRegistration) {
+        const invitation =
+          await TeamInvitationModel.findOne({
+            _id: pendingRegistration.invitationId,
+            email: normalizedEmail,
+            acceptedAt: null,
+            expiresAt: {
+              $gt: new Date(),
+            },
+          }).session(transactionSession);
 
-      await tenant.save({
-        session: transactionSession,
-      });
+        if (!invitation) {
+          throw new Error("INVITATION_INVALID");
+        }
 
-      const membership = new MembershipModel({
-        tenantId: tenant._id,
-        userId: user._id,
-        role: "owner",
-      });
+        const tenant = await TenantModel.findById(
+          invitation.tenantId,
+        ).session(transactionSession);
 
-      await membership.save({
-        session: transactionSession,
-      });
+        if (!tenant) {
+          throw new Error("INVITATION_TENANT_NOT_FOUND");
+        }
 
+        const membership = new MembershipModel({
+          tenantId: tenant._id,
+          userId: user._id,
+          role: invitation.role,
+        });
+
+        await membership.save({
+          session: transactionSession,
+        });
+
+        invitation.acceptedAt = new Date();
+
+        await invitation.save({
+          session: transactionSession,
+        });
+
+        createdUserId = user._id.toString();
+        createdTenantId = tenant._id.toString();
+        createdTenantName = tenant.name;
+        createdTenantSlug = tenant.slug;
+        createdRole = invitation.role;
+      } else {
+        /*
+         * NORMAL REGISTRATION
+         *
+         * Normal signup creates a new workspace
+         * and becomes its owner.
+         */
+        const tenantSlug = await generateUniqueTenantSlug(
+          pendingRegistration.tenantName,
+        );
+
+        const tenant = new TenantModel({
+          name: pendingRegistration.tenantName,
+          slug: tenantSlug,
+          createdBy: user._id,
+        });
+
+        await tenant.save({
+          session: transactionSession,
+        });
+
+        const membership = new MembershipModel({
+          tenantId: tenant._id,
+          userId: user._id,
+          role: "owner",
+        });
+
+        await membership.save({
+          session: transactionSession,
+        });
+
+        createdUserId = user._id.toString();
+        createdTenantId = tenant._id.toString();
+        createdTenantName = tenant.name;
+        createdTenantSlug = tenant.slug;
+        createdRole = "owner";
+      }
+
+      /*
+       * Delete pending registration only after
+       * everything above succeeds.
+       */
       const deletionResult =
         await PendingRegistrationModel.deleteOne(
           {
@@ -379,9 +519,6 @@ export const verifyRegistrationOtp = async (
       if (deletionResult.deletedCount !== 1) {
         throw new Error("REGISTRATION_CHANGED");
       }
-
-      createdUserId = user._id.toString();
-      createdTenantId = tenant._id.toString();
     });
 
     if (!createdUserId || !createdTenantId) {
@@ -391,7 +528,7 @@ export const verifyRegistrationOtp = async (
     const accessToken = createAccessToken(
       createdUserId,
       createdTenantId,
-      "owner",
+      createdRole,
     );
 
     response.status(201).json({
@@ -400,17 +537,20 @@ export const verifyRegistrationOtp = async (
       data: {
         accessToken,
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+
         user: {
           id: createdUserId,
           name: pendingRegistration.name,
           email: pendingRegistration.email,
         },
+
         tenant: {
           id: createdTenantId,
-          name: pendingRegistration.tenantName,
-          slug: tenantSlug,
+          name: createdTenantName,
+          slug: createdTenantSlug,
         },
-        role: "owner",
+
+        role: createdRole,
       },
     });
   } catch (error) {
@@ -439,6 +579,30 @@ export const verifyRegistrationOtp = async (
     }
 
     if (
+      error instanceof Error &&
+      error.message === "INVITATION_INVALID"
+    ) {
+      response.status(400).json({
+        success: false,
+        message: "Invalid or expired invitation",
+      });
+
+      return;
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "INVITATION_TENANT_NOT_FOUND"
+    ) {
+      response.status(404).json({
+        success: false,
+        message: "Invitation workspace no longer exists",
+      });
+
+      return;
+    }
+
+    if (
       typeof error === "object" &&
       error !== null &&
       "code" in error &&
@@ -452,7 +616,10 @@ export const verifyRegistrationOtp = async (
       return;
     }
 
-    console.error("Registration OTP verification failed:", error);
+    console.error(
+      "Registration OTP verification failed:",
+      error,
+    );
 
     response.status(500).json({
       success: false,

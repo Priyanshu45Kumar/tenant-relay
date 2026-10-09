@@ -1,10 +1,11 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, type Types } from "mongoose";
 
 export interface IPendingRegistration {
   name: string;
   email: string;
   passwordHash: string;
   tenantName: string;
+  invitationId?: Types.ObjectId;
   otpHash: string;
   otpExpiresAt: Date;
   otpAttempts: number;
@@ -44,6 +45,12 @@ const pendingRegistrationSchema = new Schema<IPendingRegistration>(
       minlength: 2,
       maxlength: 100,
     },
+    invitationId: {
+      type: Schema.Types.ObjectId,
+      ref: "TeamInvitation",
+      default: null,
+      index: true,
+},
 
     otpHash: {
       type: String,

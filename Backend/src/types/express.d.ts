@@ -5,8 +5,9 @@ type AuthContext =
       tenantId: string;
       role: string;
     }
-  | {
+  | {  
       authType: "api-key";
+      userId: string;
       tenantId: string;
     };
 

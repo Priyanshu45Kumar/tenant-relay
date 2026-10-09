@@ -12,6 +12,8 @@ import Settings from "../pages/settings/Settings";
 import GeneralSetting from "../pages/settings/GeneralSetting";
 import ApiKeys from "../pages/settings/ApiKeys";
 import HomePage from "../pages/HomePage"
+import Team from "../pages/dashboard/Team";
+import AcceptInvite from "../pages/auth/AcceptInvite";
 
 
 
@@ -34,7 +36,11 @@ export const router = createBrowserRouter([
       {
         path:"/verify-otp",
         element:<VerifyOtp/>
-      }
+      },
+      {
+        path: "/accept-invite",
+        element: <AcceptInvite />,
+},
     ],
   },
  {
@@ -46,6 +52,10 @@ export const router = createBrowserRouter([
         {
           path: "/dashboard",
           element: <Dashboard />,
+        },
+        {
+          path: "/team",
+          element: <Team />,
         },
         {
           path: "/webhooks",

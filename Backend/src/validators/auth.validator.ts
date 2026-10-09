@@ -25,10 +25,40 @@ export const requestRegistrationOtpSchema = z
     tenantName: z
       .string()
       .trim()
-      .min(2, "Workspace name must contain at least 2 characters")
-      .max(100, "Workspace name cannot exceed 100 characters"),
+      .max(100, "Workspace name cannot exceed 100 characters")
+      .optional(),
+
+    invitationToken: z
+      .string()
+      .trim()
+      .min(1, "Invitation token is required")
+      .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    // Normal registration:
+    // workspace name is required
+    if (!data.invitationToken && !data.tenantName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tenantName"],
+        message: "Workspace name is required",
+      });
+    }
+
+    // If workspace name is provided, it must have at least 2 characters
+    if (
+      !data.invitationToken &&
+      data.tenantName &&
+      data.tenantName.length < 2
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tenantName"],
+        message: "Workspace name must contain at least 2 characters",
+      });
+    }
+  });
 
   export const verifyRegistrationOtpSchema = z
   .object({

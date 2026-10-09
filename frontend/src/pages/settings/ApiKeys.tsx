@@ -8,11 +8,14 @@ import {
   revokeApiKey,
 } from "../../api/apiKey";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getStoredAuth } from "../../lib/auth.storage";
 
 const ApiKeys = () => {
-  // -----------------------------
-  // Create API key state
-  // -----------------------------
+  const auth = getStoredAuth();
+
+const canManageApiKeys =
+  auth?.role === "owner" || auth?.role === "admin";
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -179,7 +182,7 @@ const ApiKeys = () => {
           </p>
         </div>
 
-        <button
+        {canManageApiKeys &&(<button
           type="button"
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
@@ -187,7 +190,9 @@ const ApiKeys = () => {
           <Plus size={16} />
           Create API key
         </button>
+        )}
       </div>
+      
 
       {/* =========================
           API Keys List
@@ -276,7 +281,7 @@ const ApiKeys = () => {
                 </div>
 
                 {/* Revoke button */}
-                {apiKey.active && (
+                {canManageApiKeys && apiKey.active && (
                   <button
                     type="button"
                     onClick={() =>
@@ -299,7 +304,7 @@ const ApiKeys = () => {
       {/* =========================
           Create API Key Modal
       ========================== */}
-      {isModalOpen && (
+      {canManageApiKeys && isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
             {/* Modal header */}
@@ -432,7 +437,7 @@ const ApiKeys = () => {
       {/* =========================
           Revoke Confirmation Modal
       ========================== */}
-      {isRevokeModalOpen && selectedApiKey && (
+      {canManageApiKeys && isRevokeModalOpen && selectedApiKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
             {/* Modal header */}

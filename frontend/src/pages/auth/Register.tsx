@@ -1,11 +1,19 @@
 import { useState, type FormEvent } from "react";
-import { Link,useNavigate } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { motion } from "framer-motion";
-import axios from "axios"
+import axios from "axios";
 
 import { requestRegistrationOtp } from "../../api/register.api";
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
+
+  const invitationToken = searchParams.get("invitationToken");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [tenantName, setTenantName] = useState("");
@@ -16,6 +24,8 @@ const Register = () => {
 
   const navigate = useNavigate();
 
+  const isInvitationRegistration = Boolean(invitationToken);
+
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> => {
@@ -25,32 +35,37 @@ const Register = () => {
     setLoading(true);
 
     try {
-       await requestRegistrationOtp({
+      await requestRegistrationOtp({
         name,
         email,
         password,
         tenantName,
+        ...(invitationToken
+          ? { invitationToken }
+          : {}),
       });
 
-      navigate("/verify-otp",{
-        state:{
-            email,
-        }
+      navigate("/verify-otp", {
+        state: {
+          email,
+        },
       });
     } catch (error) {
-  if (axios.isAxiosError(error)) {
-    console.log("Status:", error.response?.status);
-    console.log("Backend response:", error.response?.data);
+      if (axios.isAxiosError(error)) {
+        console.log("Status:", error.response?.status);
+        console.log("Backend response:", error.response?.data);
 
-    setError(
-      error.response?.data?.message ||
-        "Unable to start registration.",
-    );
-  } else {
-    console.error("Registration failed:", error);
-    setError("Unable to start registration.");
-  }
-}
+        setError(
+          error.response?.data?.message ||
+            "Unable to start registration.",
+        );
+      } else {
+        console.error("Registration failed:", error);
+        setError("Unable to start registration.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,11 +78,15 @@ const Register = () => {
         {/* Heading */}
         <div className="mb-8">
           <h2 className="text-3xl font-semibold tracking-tight">
-            Create your account
+            {isInvitationRegistration
+              ? "Join your workspace"
+              : "Create your account"}
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Create your TenantRelay workspace and get started.
+            {isInvitationRegistration
+              ? "Complete your account setup to join the workspace."
+              : "Create your TenantRelay workspace and get started."}
           </p>
         </div>
 
@@ -86,7 +105,9 @@ const Register = () => {
               type="text"
               placeholder="Your name"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) =>
+                setName(event.target.value)
+              }
               required
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-zinc-500 focus:ring-2 focus:ring-white/5"
             />
@@ -106,7 +127,9 @@ const Register = () => {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               required
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-zinc-500 focus:ring-2 focus:ring-white/5"
             />
@@ -124,12 +147,25 @@ const Register = () => {
             <input
               id="tenantName"
               type="text"
-              placeholder="My Company"
+              placeholder={
+                isInvitationRegistration
+                  ? "Workspace from invitation"
+                  : "My Company"
+              }
               value={tenantName}
-              onChange={(event) => setTenantName(event.target.value)}
+              onChange={(event) =>
+                setTenantName(event.target.value)
+              }
               required
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-zinc-500 focus:ring-2 focus:ring-white/5"
+              disabled={isInvitationRegistration}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-zinc-500 focus:ring-2 focus:ring-white/5 disabled:cursor-not-allowed disabled:opacity-50"
             />
+
+            {isInvitationRegistration && (
+              <p className="mt-2 text-xs text-zinc-500">
+                Your workspace is determined by the invitation.
+              </p>
+            )}
           </div>
 
           {/* Password */}
@@ -146,13 +182,16 @@ const Register = () => {
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
               required
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-zinc-500 focus:ring-2 focus:ring-white/5"
             />
 
             <p className="mt-2 text-xs text-zinc-500">
-              At least 8 characters with uppercase, lowercase, and a number.
+              At least 8 characters with uppercase, lowercase,
+              and a number.
             </p>
           </div>
 
@@ -171,11 +210,17 @@ const Register = () => {
           <motion.button
             type="submit"
             disabled={loading}
-            whileHover={{ scale: loading ? 1 : 1.01 }}
-            whileTap={{ scale: loading ? 1 : 0.98 }}
+            whileHover={{
+              scale: loading ? 1 : 1.01,
+            }}
+            whileTap={{
+              scale: loading ? 1 : 0.98,
+            }}
             className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Sending verification code..." : "Continue"}
+            {loading
+              ? "Sending verification code..."
+              : "Continue"}
           </motion.button>
         </form>
 

@@ -24,7 +24,7 @@ const Login = () => {
 
       saveAuth(response.data);
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
     }
