@@ -32,7 +32,7 @@ export const getCurrentWorkspace = async(
             id:workspace._id.toString(),
             name:workspace.name,
             slug:workspace.slug,
-            role:request.auth.role,
+            role: "role" in request.auth ? request.auth.role : null,
             createdAt:workspace.createdAt
         }
       });

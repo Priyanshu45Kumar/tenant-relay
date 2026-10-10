@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authorize } from "../middlewares/authorize.middleware.js";
 
 import {
   getTeamMembers,
@@ -24,6 +25,7 @@ router.post(
 router.get(
   "/",
   authenticate,
+  authorize("owner", "admin","developer"),
   requireTenantMembership,
   getTeamMembers,
 );

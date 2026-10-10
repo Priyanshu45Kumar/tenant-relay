@@ -6,6 +6,7 @@ import webhookRouter from "./routes/webhook.routes.js"
 import eventRouter from "./routes/event.routes.js";
 import apiKeyRouter from "./routes/apiKey.routes.js";
 import teamRouter from "./routes/team.routes.js";
+import deliveryRoutes from "./routes/delivery.routes.js";
 import "./config/redis.js";
 
 
@@ -33,5 +34,7 @@ app.use("/api/webhooks",webhookRouter);
 app.use("/api/events", eventRouter);
 app.use("/api/api-keys",apiKeyRouter)
 app.use("/api/team", teamRouter);
+
+app.use("/api/deliveries", deliveryRoutes);
 
 export default app;

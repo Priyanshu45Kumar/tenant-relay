@@ -6,6 +6,19 @@ export interface Event {
   createdAt: string;
 }
 
+export interface DeliveryStats {
+  successful: number;
+  failed: number;
+  pending: number;
+  total: number;
+}
+
+export interface GetDeliveryStatsResponse {
+  success: boolean;
+  data: DeliveryStats;
+}
+
+
 export interface CreateEventRequest {
   type: string;
   payload: Record<string, unknown>;

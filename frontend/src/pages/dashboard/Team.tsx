@@ -18,6 +18,7 @@ import {
 } from "../../api/team.api";
 
 import type { TeamMember } from "../../types/team";
+import { getStoredAuth } from "../../lib/auth.storage";
 
 const roleStyles: Record<TeamMember["role"], string> = {
   owner:
@@ -33,6 +34,10 @@ const roleStyles: Record<TeamMember["role"], string> = {
 type InviteRole = "admin" | "developer" | "viewer";
 
 const Team = () => {
+  const auth = getStoredAuth();
+
+const canInviteMembers =
+  auth?.role === "owner" || auth?.role === "admin";
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -163,7 +168,7 @@ const Team = () => {
           </div>
         </div>
 
-        <button
+        {canInviteMembers &&(<button
           type="button"
           onClick={() =>
             setIsInviteModalOpen(true)
@@ -173,6 +178,7 @@ const Team = () => {
           <Plus className="h-4 w-4" />
           Invite member
         </button>
+        )}
       </div>
 
       {/* Stats */}

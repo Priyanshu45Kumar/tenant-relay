@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { getCurrentUser } from "../api/auth.api";
 import type { CurrentUserData } from "../types/auth";
+import { logout } from "../lib/auth";
 
 import {
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
   ChevronDown,
   MoreVertical,
   Radio,
+  LogOut
 } from "lucide-react";
 
 /**
@@ -69,7 +71,8 @@ const DashboardLayout = () => {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const reduce = useReducedMotion();
-
+  
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
@@ -214,12 +217,14 @@ const DashboardLayout = () => {
                 </div>
 
                 <button
-                  type="button"
-                  className="rounded-md p-1.5 text-[#4A5164] transition-colors hover:bg-[#1E2433] hover:text-white"
-                  aria-label="User menu"
-                >
-                  <MoreVertical size={16} />
-                </button>
+  type="button"
+  onClick={() => setShowLogoutConfirm(true)}
+  className="rounded-md p-1.5 text-[#6C7486] transition-colors hover:bg-red-500/10 hover:text-red-400"
+  aria-label="Logout"
+  title="Logout"
+>
+  <LogOut size={16} />
+</button>
               </div>
             ) : null}
           </div>
@@ -287,6 +292,65 @@ const DashboardLayout = () => {
           </div>
         </main>
       </div>
+      <AnimatePresence>
+  {showLogoutConfirm && (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setShowLogoutConfirm(false)}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-title"
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        onClick={(event) => event.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border border-[#1E2433] bg-[#12161F] p-6 shadow-2xl"
+      >
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-400">
+          <LogOut size={20} />
+        </div>
+
+        <h2
+          id="logout-title"
+          className="mt-4 text-lg font-semibold text-white"
+        >
+          Are you sure you want to log out?
+        </h2>
+
+        <p className="mt-2 text-sm leading-6 text-[#8B93A6]">
+          You will need to sign in again to access your workspace.
+        </p>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setShowLogoutConfirm(false)}
+            className="rounded-xl border border-[#2A3142] px-4 py-2.5 text-sm font-medium text-[#C5CAD5] transition-colors hover:bg-[#1E2433]"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              window.location.href = "/login";
+            }}
+            className="rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-400"
+          >
+            Log out
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
     </div>
   );
 };

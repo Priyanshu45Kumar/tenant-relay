@@ -5,6 +5,7 @@ import type {
   CreateEventRequest,
   CreateEventResponse,
   GetEventsResponse,
+  GetDeliveryStatsResponse
 } from "../types/event";
 
 export const createEvent = async (
@@ -31,4 +32,13 @@ export const getEvents = async (): Promise<GetEventsResponse> => {
 
   return response.data;
 };
+
+export const getDeliveryStats =
+  async (): Promise<GetDeliveryStatsResponse> => {
+    const response = await api.get<GetDeliveryStatsResponse>(
+      "/deliveries/stats",
+    );
+
+    return response.data;
+  };
 
