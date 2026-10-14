@@ -808,3 +808,104 @@ export const getCurrentUser = async (
     });
   }
 };
+
+export const updatePassword = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  if (!request.auth || request.auth.authType !== "jwt") {
+    response.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+    return;
+  }
+
+  const { currentPassword, newPassword } = request.body;
+
+  if (
+    typeof currentPassword !== "string" ||
+    typeof newPassword !== "string" ||
+    !currentPassword ||
+    !newPassword
+  ) {
+    response.status(400).json({
+      success: false,
+      message: "Current password and new password are required",
+    });
+    return;
+  }
+
+  if (newPassword.length < 8 || newPassword.length > 72) {
+    response.status(400).json({
+      success: false,
+      message: "New password must be between 8 and 72 characters",
+    });
+    return;
+  }
+
+  if (currentPassword === newPassword) {
+    response.status(400).json({
+      success: false,
+      message: "New password must differ from current password",
+    });
+    return;
+  }
+
+  try {
+    const { userId, tenantId } = request.auth;
+
+    // Verify that this user still belongs to the authenticated workspace.
+    const membership = await MembershipModel.findOne({
+      userId,
+      tenantId,
+    }).select("_id");
+
+    if (!membership) {
+      response.status(403).json({
+        success: false,
+        message: "Workspace membership not found",
+      });
+      return;
+    }
+
+    // passwordHash has select:false in your User model.
+    const user = await UserModel.findById(userId).select("+passwordHash");
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      response.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+      return;
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    response.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error("Password update failed:", error);
+
+    response.status(500).json({
+      success: false,
+      message: "Unable to update password",
+    });
+  }
+};

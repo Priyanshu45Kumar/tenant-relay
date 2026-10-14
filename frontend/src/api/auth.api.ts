@@ -1,5 +1,5 @@
 import api from "../lib/axios";
-import type {CurrentUserResponse,LoginRequest, LoginResponse } from "../types/auth";
+import type { UpdatePasswordRequest,UpdatePasswordResponse,CurrentUserResponse,LoginRequest, LoginResponse } from "../types/auth";
 
 export const login = async (
   credentials: LoginRequest,
@@ -18,3 +18,14 @@ export const getCurrentUser =
 
     return response.data;
   };
+  
+  export const updatePassword = async (
+  data: UpdatePasswordRequest,
+): Promise<UpdatePasswordResponse> => {
+  const response = await api.patch<UpdatePasswordResponse>(
+    "/auth/change-password",
+    data,
+  );
+
+  return response.data;
+};

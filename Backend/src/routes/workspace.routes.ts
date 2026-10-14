@@ -8,7 +8,11 @@ import {updateWorkspace} from "../controllers/workspace.controller.js"
 import {MEMBERSHIP_ROLES} from "../constants/membership-roles.js"
 const workspaceRouter = Router();
 
-workspaceRouter.get("/current",getCurrentWorkspace);
+workspaceRouter.get("/current",
+  authenticate,
+  requireTenantMembership,
+  getCurrentWorkspace,);
+  
 workspaceRouter.patch(
   "/current",
   authenticate,

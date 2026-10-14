@@ -10,6 +10,8 @@ import Webhooks from "../pages/Webhooks/Webhooks";
 import Events from "../pages/events/Events";
 import Settings from "../pages/settings/Settings";
 import GeneralSetting from "../pages/settings/GeneralSetting";
+import DangerZone from "../pages/settings/DangerZone";
+import Security from "../pages/settings/Security";
 import ApiKeys from "../pages/settings/ApiKeys";
 import HomePage from "../pages/HomePage"
 import Team from "../pages/dashboard/Team";
@@ -79,9 +81,17 @@ export const router = createBrowserRouter([
               element: <GeneralSetting />,
             },
             {
-      path: "api-keys",
-      element: <ApiKeys />,
-    },
+              path: "api-keys",
+              element: <ApiKeys />,
+            },
+            {
+              path: "security",
+              element: <Security />,
+            },
+            {
+              path: "danger-zone",
+              element: <DangerZone/>,
+            },
           ],
         },
       ],
