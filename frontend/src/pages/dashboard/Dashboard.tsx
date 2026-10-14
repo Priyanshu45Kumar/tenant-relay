@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
 import {
   Activity,
   ArrowUpRight,
@@ -21,6 +23,7 @@ import type { WebhookEndpoint } from "../../types/webhook";
 const Dashboard = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
+  const navigate = useNavigate();
 
   const [deliveryStats, setDeliveryStats] = useState<DeliveryStats>({
     successful: 0,
@@ -102,17 +105,19 @@ const Dashboard = () => {
       icon: Webhook,
     },
     {
-      title: "Successful Deliveries",
-      value: loading ? "--" : deliveryStats.successful.toString(),
-      description: "Successfully delivered",
-      icon: CheckCircle2,
-    },
-    {
-      title: "Failed Deliveries",
-      value: loading ? "--" : deliveryStats.failed.toString(),
-      description: "Currently marked as failed",
-      icon: XCircle,
-    },
+  title: "Successful Deliveries",
+  value: loading ? "--" : deliveryStats.successful.toString(),
+  description: "Successfully delivered",
+  icon: CheckCircle2,
+  path: "/deliveries?status=success",
+},
+{
+  title: "Failed Deliveries",
+  value: loading ? "--" : deliveryStats.failed.toString(),
+  description: "Currently marked as failed",
+  icon: XCircle,
+  path: "/deliveries?status=failed",
+},
   ];
 
   return (
@@ -158,43 +163,66 @@ const Dashboard = () => {
       {/* Stats */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat, index) => {
-          const Icon = stat.icon;
+  const Icon = stat.icon;
 
-          return (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: index * 0.08,
-              }}
-              className="group rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 backdrop-blur-sm transition-all duration-200 hover:border-blue-500/30 hover:bg-zinc-900/70"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
-                  <Icon className="h-5 w-5 text-blue-400" />
-                </div>
+  return (
+    <motion.div
+      key={stat.title}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.08,
+      }}
+      onClick={
+        stat.path
+          ? () => navigate(stat.path)
+          : undefined
+      }
+      onKeyDown={(event) => {
+        if (
+          stat.path &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault();
+          navigate(stat.path);
+        }
+      }}
+      role={stat.path ? "button" : undefined}
+      tabIndex={stat.path ? 0 : undefined}
+      className={`group rounded-xl border border-zinc-800/80
+        bg-zinc-900/40 p-5 backdrop-blur-sm transition-all duration-200
+        hover:border-blue-500/30 hover:bg-zinc-900/70
+        ${
+          stat.path
+            ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+            : ""
+        }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
+          <Icon className="h-5 w-5 text-blue-400" />
+        </div>
 
-                <ArrowUpRight className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-blue-400" />
-              </div>
+        <ArrowUpRight className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-blue-400" />
+      </div>
 
-              <div className="mt-5">
-                <p className="text-sm text-zinc-400">
-                  {stat.title}
-                </p>
+      <div className="mt-5">
+        <p className="text-sm text-zinc-400">
+          {stat.title}
+        </p>
 
-                <p className="mt-1 text-3xl font-semibold tracking-tight">
-                  {stat.value}
-                </p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight">
+          {stat.value}
+        </p>
 
-                <p className="mt-1 text-xs text-zinc-500">
-                  {stat.description}
-                </p>
-              </div>
-            </motion.div>
-          );
-        })}
+        <p className="mt-1 text-xs text-zinc-500">
+          {stat.description}
+        </p>
+      </div>
+    </motion.div>
+  );
+})}
       </div>
 
       {/* Main content */}

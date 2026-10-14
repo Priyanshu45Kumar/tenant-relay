@@ -25,13 +25,20 @@ export const createEvent = async (
   return response.data;
 };
 
-export const getEvents = async (): Promise<GetEventsResponse> => {
-  const response = await api.get<GetEventsResponse>(
-    "/events",
-  );
 
-  return response.data;
+export const getEvents = async (): Promise<GetEventsResponse> => {
+  const response = await api.get<GetEventsResponse>("/events");
+
+  return {
+    ...response.data,
+    data: response.data.data.map((event) => ({
+      ...event,
+      id: event._id,
+    })),
+  };
 };
+
+
 
 export const getDeliveryStats =
   async (): Promise<GetDeliveryStatsResponse> => {

@@ -14,6 +14,7 @@ import ApiKeys from "../pages/settings/ApiKeys";
 import HomePage from "../pages/HomePage"
 import Team from "../pages/dashboard/Team";
 import AcceptInvite from "../pages/auth/AcceptInvite";
+import Deliveries from "../pages/deliveries/Deliveries"
 
 
 
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
     {
       element: <DashboardLayout />,
       children: [
+        {
+  path: "/deliveries",
+  element: <Deliveries />,
+},
         {
           path: "/dashboard",
           element: <Dashboard />,

@@ -1,5 +1,6 @@
 
 export interface Event {
+   _id: string;
   id: string;
   type: string;
   payload: Record<string, unknown>;
