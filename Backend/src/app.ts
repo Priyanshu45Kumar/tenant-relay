@@ -1,33 +1,31 @@
+
 import cors from "cors";
 import express, { type Request, type Response } from "express";
+
 import authRouter from "./routes/auth.routes.js";
 import workspaceRouter from "./routes/workspace.routes.js";
-import webhookRouter from "./routes/webhook.routes.js"
+import webhookRouter from "./routes/webhook.routes.js";
 import eventRouter from "./routes/event.routes.js";
 import apiKeyRouter from "./routes/apiKey.routes.js";
 import teamRouter from "./routes/team.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import "./config/redis.js";
 
-
 const app = express();
 
-
+const allowedOrigins = [
+  "https://tenant-relay.vercel.app",
+  "https://tenant-relay-9p9id3x3n-priyanshus-projects-e257f7aa.vercel.app",
+  "http://localhost:5173",
+];
 
 app.use(
   cors({
-    origin: [
-      "https://tenant-relay.vercel.app",
-      "http://localhost:5173",
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
   })
 );
-
-app.use(express.json());
-
-// Keep your existing routes and other middleware below.
 
 app.use(express.json());
 
@@ -39,12 +37,11 @@ app.get("/api/health", (_request: Request, response: Response) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("/api/workspace",workspaceRouter);
-app.use("/api/webhooks",webhookRouter);
+app.use("/api/workspace", workspaceRouter);
+app.use("/api/webhooks", webhookRouter);
 app.use("/api/events", eventRouter);
-app.use("/api/api-keys",apiKeyRouter)
+app.use("/api/api-keys", apiKeyRouter);
 app.use("/api/team", teamRouter);
-
 app.use("/api/deliveries", deliveryRoutes);
 
 export default app;
