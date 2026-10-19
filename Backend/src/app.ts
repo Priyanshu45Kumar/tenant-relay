@@ -12,17 +12,22 @@ import "./config/redis.js";
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://tenant-relay.vercel.app",
-];
+
 
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true,
-  }),
+    origin: [
+      "https://tenant-relay.vercel.app",
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+  })
 );
+
+app.use(express.json());
+
+// Keep your existing routes and other middleware below.
 
 app.use(express.json());
 
