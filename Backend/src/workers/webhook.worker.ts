@@ -1,11 +1,9 @@
 
 
-import "dotenv/config";
 import { Worker } from "bullmq";
 import axios from "axios";
 
 import { redisConnection } from "../config/redis.js";
-import { connectDatabase } from "../config/database.js";
 import { EventModel } from "../models/event.model.js";
 import { WebhookEndpointModel } from "../models/webhook-endpoint.model.js";
 import {
@@ -20,11 +18,7 @@ type WebhookJobData = {
   deliveryId?: string;
 };
 
-const startWorker = async () => {
-  await connectDatabase();
-
-  console.log("MongoDB connected for webhook worker");
-
+export const startWebhookWorker = async () => {
   const webhookWorker = new Worker<WebhookJobData>(
     "webhook-delivery",
     async (job) => {
@@ -41,10 +35,7 @@ const startWorker = async () => {
         throw new Error("Event not found");
       }
 
-      // Manual replay targets one existing failed delivery.
-      // Normal event jobs target all active endpoints.
       let replayDelivery: IWebhookDelivery | null = null;
-
       let webhooks;
 
       if (deliveryId) {
@@ -68,9 +59,7 @@ const startWorker = async () => {
         });
 
         if (!webhook) {
-          throw new Error(
-            "Webhook endpoint not found or inactive",
-          );
+          throw new Error("Webhook endpoint not found or inactive");
         }
 
         webhooks = [webhook];
@@ -89,11 +78,8 @@ const startWorker = async () => {
         let delivery: IWebhookDelivery | null;
 
         if (deliveryId) {
-          // Reuse the exact delivery record selected for replay.
           delivery = replayDelivery;
         } else {
-          // Create a record only if this event/endpoint pair
-          // does not already have one.
           delivery = await WebhookDeliveryModel.findOneAndUpdate(
             {
               eventId: event._id,
@@ -111,7 +97,7 @@ const startWorker = async () => {
             },
             {
               upsert: true,
-              new: true,
+              returnDocument: "after",
               setDefaultsOnInsert: true,
             },
           );
@@ -121,15 +107,11 @@ const startWorker = async () => {
           throw new Error("Unable to create or load delivery record");
         }
 
-        // Never send a successful delivery again.
         if (delivery.status === "success") {
-          console.log(
-            `Already delivered; skipping ${webhook.url}`,
-          );
+          console.log(`Already delivered; skipping ${webhook.url}`);
           continue;
         }
 
-        // Mark the attempt before making the HTTP request.
         await WebhookDeliveryModel.updateOne(
           {
             _id: delivery._id,
@@ -232,12 +214,8 @@ const startWorker = async () => {
         }
       }
 
-      // Failed normal jobs can be retried according to their
-      // BullMQ job options. Manual replay jobs can use attempts: 1.
       if (hasFailures) {
-        throw new Error(
-          "One or more webhook deliveries failed",
-        );
+        throw new Error("One or more webhook deliveries failed");
       }
     },
     {
@@ -250,18 +228,16 @@ const startWorker = async () => {
   });
 
   webhookWorker.on("failed", (job, error) => {
-    console.error(
-      `Job ${job?.id} failed:`,
-      error.message,
-    );
+    console.error(`Job ${job?.id} failed:`, error.message);
   });
 
   webhookWorker.on("error", (error) => {
     console.error("Webhook worker error:", error);
   });
-};
 
-startWorker().catch((error) => {
-  console.error("Failed to start webhook worker:", error);
-  process.exitCode = 1;
-});
+  await webhookWorker.waitUntilReady();
+
+  console.log("Webhook worker started successfully");
+
+  return webhookWorker;
+};
